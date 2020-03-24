@@ -40,8 +40,8 @@ window.onload = function () {
        //     y: 0
      //   }
         change(movingCircle, e);
-       // change(obstacleCircle1, e);
-      //  change(obstacleCircle2, e)
+        change(obstacleCircle1, e);
+     //   change(obstacleCircle2, e)
       //  change(obstacleCircle3, e)
     }
     function change(obj, e) {
@@ -98,7 +98,7 @@ window.onload = function () {
                 y: 400
             }
             this.MAX_SEE_AHEAD = 40;
-            this.MAX_AVOID_FORCE = 80
+            this.MAX_AVOID_FORCE = 800
                 this.MAX_SPEED = 40
 				this.MAX_SEEK_FORCE = 180;
                 this.movingtimer = null
@@ -267,7 +267,7 @@ window.onload = function () {
         positionTestfunc() {
             let obstacle = this.findMostcloseobstacle();
 			let speedlength = this.squalCaculator(this.velocity,true)
-            if ((obstacle.x - this.x) ** 2 + (obstacle.y - this.y) ** 2+speedlength*this.dt*2 < (this.r + obstacle.r) ** 2) {
+            if ((obstacle.x - this.x) ** 2 + (obstacle.y - this.y) ** 2 - 10 < (this.r + obstacle.r) ** 2) {
 		
                	let this2obstacle = {
 			    x: obstacle.x - this.x,
@@ -290,11 +290,13 @@ window.onload = function () {
 				 y:ethis2obstacle.y*striktlength
 			     
 			  }
+			  //1.2 is suitable for the new velocity direction is on the oppsite of this-obstacle
 			  this.velocity = {
-			     x: this.velocity.x - velocitylengthmatrix.x,
-				 y: this.velocity.y - velocitylengthmatrix.y
+			     x: this.velocity.x - 1.2*velocitylengthmatrix.x, 
+				 y: this.velocity.y - 1.2*velocitylengthmatrix.y
 			  
-			  }
+			  };
+			  //not only the divide velocity to
 			}
             }
 			
@@ -359,20 +361,26 @@ window.onload = function () {
                 y: this.velocity.y * this.dt
             }
 			// if the distance between position and destination,let velocity to be 0
-			if((this.x-this.destination.x)**2+(this.y-this.destination.y)**2<1){
-			this.stable = true;
-			this.velocity = {
-			  x:0,
-			  y:0
-			}
-			  
+			if((this.x-this.destination.x)**2+(this.y-this.destination.y)**2<0.0001){
+		        this.stableMethod();
 			}
 			
 			console.log()
             this.x += ds.x;
             this.y += ds.y
         }
-
+		//let the entity to be stable
+        stableMethod(){
+		/*
+		this.stable = true;
+			this.velocity = {
+			  x:0,
+			  y:0
+			}
+			  
+		*/
+		  	
+		}
         repaint() {
 
             context.clearRect(this.x - this.r - 8, this.y - this.r - 8, this.r * 2 + 14, this.r * 2 + 14);
