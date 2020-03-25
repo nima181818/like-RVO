@@ -27,10 +27,18 @@
 
 </style>
 <body >
+<div id="cancel" style="cursor:pointer">取消全选</div>
   <canvas width=700 height=700 id="canvas"></canvas>
 </body>
 <script>
 window.onload = function () {
+let cancel = document.getElementById('cancel');
+    cancel.onclick = function(){
+	
+           for(let j=0;j<obstaclearray.length;j++){
+		   obstaclearray[j].multiselect = false
+		   }
+	}
     let obstaclearray = []
     let canvas = document.getElementById('canvas');
     canvas.onclick = function (e) {
@@ -39,12 +47,15 @@ window.onload = function () {
       //      x: 0,
        //     y: 0
      //   }
+	     
         change(movingCircle, e);
         change(obstacleCircle1, e);
-     //   change(obstacleCircle2, e)
-      //  change(obstacleCircle3, e)
+        change(obstacleCircle2, e)
+        change(obstacleCircle3, e)
     }
     function change(obj, e) {
+	  obj.multiselect = true
+	  obj.stable = false
         let cos = (e.pageX - obj.x) / ((e.pageX - obj.x) ** 2 + (e.pageY - obj.y) ** 2) ** 0.5;
         let sin = (e.pageY - obj.y) / ((e.pageX - obj.x) ** 2 + (e.pageY - obj.y) ** 2) ** 0.5;
         obj.velocity = {
@@ -63,7 +74,12 @@ window.onload = function () {
         constructor(x, y, r) {
             this.id = ++id
                 this.x = x;
-            this.mass = 2
+				this.lastposition = {
+					x:0,
+					y:0
+				}
+            this.mass = 2;
+			this.multiselect = false
                 this.y = y;
             this.r = r;
             this.inaviodingmode = {
@@ -120,7 +136,8 @@ window.onload = function () {
                     this.updatingcalculateobstaclematrix(obstaclearray[0]);
                     this.updatingVelocity();
                     this.updatingDisplacement();
-                    this.repaint()
+                    this.repaint();
+					this.handleDestinations();
                 }, 16.6)
 
         }
@@ -339,12 +356,64 @@ window.onload = function () {
 					  }
 					 
 				
-					  clearInterval(this.movingtimer)
+					 // clearInterval(this.movingtimer)
            this.positionTestfunc()
-           this.motivateForce();
+           //this.motivateForce();
 
           
         }
+		//handle multi-entitys have the same destination
+		handleDestinations() {
+		    if (this.multiselect) {
+		        if (this.stable) {
+
+		            let obstacle = this.minDistancefromcenter();
+		            if ((this.pointDistance(obstacle, this) < ((this.r + obstacle.r) ** 2) + 1)
+		                 && (this.pointDistance(obstacle, this) > ((this.r + obstacle.r) ** 2) - 1)) {
+		                //
+		                console.log('抵达')
+		                obstacle.destination.x = obstacle.x;
+		                obstacle.destination.y = obstacle.y;
+
+		            }
+
+		        } else {
+					let obstacle = this.minDistancefromcenter();
+		            if ((this.pointDistance(obstacle, this) < ((this.r + obstacle.r) ** 2) + 1)
+		                 && (this.pointDistance(obstacle, this) > ((this.r + obstacle.r) ** 2) - 1)) {
+		                //
+		                console.log('抵达')
+		                this.destination.x = this.x;
+		                this.destination.y = this.y;
+
+		            }
+				}
+
+		    }
+
+		}
+		//closest distance from their center 
+		minDistancefromcenter(){
+			let temp = []
+			for(let j=0;j<obstaclearray.length;j++){
+				if(obstaclearray[j].multiselect&&this.id!=obstaclearray[j].id){
+					temp.push(obstaclearray[j])
+				}
+			}
+			let obstacle = temp[0];
+			for(let j=0;j<temp.length;j++){
+				if(this.pointDistance(this,temp[j])<=this.pointDistance(this,obstacle)){
+					obstacle = temp[j]
+				}
+			}
+		  return obstacle;
+		}
+		//distance function
+		pointDistance(obj1,obj2,kf=false){
+			let distance =  (obj1.x-obj2.x)**2 +(obj1.y - obj2.y)**2;
+            return kf?(distance**0.5):distance			
+			
+		}
         //real-time updating position
         updatingDisplacement() {
             //if the position is too close to wall,turn the velocity back
@@ -356,34 +425,40 @@ window.onload = function () {
                 }
 
             }
-            let ds = {
+            
+			// if the distance between position and destination,let velocity to be 0
+			if((this.x-this.destination.x)**2+(this.y-this.destination.y)**2<1){
+		        this.stableMethod(true);
+			}else{
+				    this.stableMethod(false);
+			}
+			let ds = {
                 x: this.velocity.x * this.dt,
                 y: this.velocity.y * this.dt
             }
-			// if the distance between position and destination,let velocity to be 0
-			if((this.x-this.destination.x)**2+(this.y-this.destination.y)**2<0.0001){
-		        this.stableMethod();
-			}
-			
-			console.log()
+		
             this.x += ds.x;
             this.y += ds.y
         }
 		//let the entity to be stable
-        stableMethod(){
+        stableMethod(reach){
 		/*
-		this.stable = true;
-			this.velocity = {
+		
+		*/
+		  	this.stable = reach;
+			if(this.stable){
+				
+				this.velocity = {
 			  x:0,
 			  y:0
 			}
+			}
+			
 			  
-		*/
-		  	
 		}
         repaint() {
-
-            context.clearRect(this.x - this.r - 8, this.y - this.r - 8, this.r * 2 + 14, this.r * 2 + 14);
+            let dis = 2
+            context.clearRect(this.lastposition.x-this.r-dis, this.lastposition.y-this.r-dis,this.r * 2+ 2*dis, this.r * 2+2*dis);
             if(this.id==2){
 			context.strokeStyle = "red"
 			}
@@ -398,6 +473,8 @@ window.onload = function () {
 			}
 
             context.beginPath();
+			this.lastposition.x = this.x;
+			this.lastposition.y = this.y;
             context.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
             context.stroke();
         }
